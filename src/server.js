@@ -1,7 +1,7 @@
 import express from 'express'
 import helmet from 'helmet'
 import { ApolloServer } from 'apollo-server-express'
-import { ApolloGateway } from '@apollo/gateway'
+import { ApolloGateway, RemoteGraphQLDataSource } from '@apollo/gateway'
 
 /**
  * The main function of the application.
@@ -12,9 +12,42 @@ const main = async () => {
   // Initialize an ApolloGateway instance and pass service names and URLs.
   const gateway = new ApolloGateway({
     serviceList: [
-      { name: 'accounts', url: process.env.AUTH_DOMAIN },
-      { name: 'accounts', url: process.env.RESOURCE_DOMAIN }
-    ]
+      { name: 'auth', url: process.env.AUTH_DOMAIN },
+      { name: 'resource', url: process.env.RESOURCE_DOMAIN }
+    ],
+    /**
+     * BuildService called once for each implementing service.
+     * Returns an object that implements the GraphQLDataSource interface.
+     *
+     * @param {object} args arguments.
+     * @param {object} args.name name.
+     * @param {object} args.url url.
+     * @returns {object} The server app.
+     */
+    buildService ({ name, url }) {
+      return new RemoteGraphQLDataSource({
+        url,
+        /**
+         * Takes a requestContext object that contains both...
+         * the original unmodified request and the current context.
+         *
+         * @param {object} args arguments.
+         * @param {object} args.request The request object.
+         * @param {object} args.context The context object.
+         */
+        willSendRequest ({ request, context }) {
+          if (context.req === undefined) {
+            return
+          }
+          request.http.headers.set(
+            'authorization',
+            context.req.headers.authorization
+              ? context.req.headers.authorization
+              : null
+          )
+        }
+      })
+    }
   })
 
   // Pass the ApolloGateway to the ApolloServer constructor
