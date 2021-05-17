@@ -63,7 +63,9 @@ const main = async () => {
      * @param {object} args.res The res.
      * @returns {object} The req and res.
      */
-    context: ({ req, res }) => ({ req, res })
+    context: ({ req, res }) => ({ req, res }),
+    playground: true,
+    introspection: true
   })
 
   await server.start()
@@ -72,10 +74,7 @@ const main = async () => {
   // Set various HTTP headers to make the application little more secure (https://www.npmjs.com/packagehelmet).
   const app = express()
   app.use(helmet({
-    contentSecurityPolicy:
-    (process.env.NODE_ENV === 'production')
-      ? undefined
-      : false
+    contentSecurityPolicy: false
   }))
 
   // Error handler.
